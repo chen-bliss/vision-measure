@@ -1,0 +1,1 @@
+observation_id,participant_id,device,source,condition,calibration_id,role,reference_m,reference_bound_m,observed_m,observed_bound_m,repeat_index,status,synthetic

@@ -1,0 +1,28 @@
+# Build products and local application data
+.build/
+Build/
+.swiftpm/
+__pycache__/
+*.pyc
+*.log
+*.zip
+*.ipa
+*.xcarchive
+*.dSYM/
+
+# Xcode and macOS per-user files
+*.xcuserstate
+xcuserdata/
+.DS_Store
+
+# Local diagnostic captures may contain device identifiers and paths.
+Docs/Verification/
+
+# Signing material and credentials
+*.p12
+*.p8
+*.key
+*.mobileprovision
+*.provisionprofile
+.env
+.env.*
