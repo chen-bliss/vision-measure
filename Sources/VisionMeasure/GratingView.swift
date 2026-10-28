@@ -32,7 +32,7 @@ struct GratingView: View {
             overlay.fill(Path(rect), with: .radialGradient(Gradient(colors: [Color(white: 0.5).opacity(0), Color(white: 0.5)]),
                 center: CGPoint(x: size.width/2, y: size.height/2), startRadius: diameter * 0.22, endRadius: diameter/2))
         }
-        .accessibilityLabel(side == 0 ? "左侧测试区域" : "右侧测试区域")
+        .accessibilityLabel(side == 0 ? L("左侧测试区域") : L("右侧测试区域"))
         .accessibilityHidden(true)
     }
 }
@@ -41,18 +41,19 @@ struct StimulusPreviewView: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         VStack(alignment:.leading,spacing:20) {
-            Text("条纹显示示例").font(.title2.bold())
-            Text("左侧为放大的示意条纹，右侧为灰色。此页仅检查屏幕显示，不需要测距，不记录作答，也不计算度数。")
+            Text(L("条纹显示示例")).font(.title2.bold())
+            Text(L("左侧为放大的示意条纹，右侧为灰色。此页仅检查屏幕显示，不需要测距，不记录作答，也不计算度数。"))
             HStack(spacing:16) {
                 ForEach(0..<2) { side in
                     GratingView(side:side,correctSide:0,meridian:0,stripeWidth:4,diameter:80,visible:true)
                         .frame(maxWidth:.infinity).frame(height:160)
                 }
-            }.accessibilityElement(children:.ignore).accessibilityLabel("条纹显示示例区域")
+            }.environment(\.layoutDirection, .leftToRight)
+                .accessibilityElement(children:.ignore).accessibilityLabel(L("条纹显示示例区域"))
                 .accessibilityIdentifier("preview-stimulus-pair")
-            Text("正式测试会使用更细的条纹，并在距离已确认、到达目标且读数稳定后显示。示例清晰不代表测量准确。")
+            Text(L("正式测试会使用更细的条纹，并在距离已确认、到达目标且读数稳定后显示。示例清晰不代表测量准确。"))
                 .font(.callout).foregroundStyle(.secondary)
-            Button("返回测距与测试") { dismiss() }.buttonStyle(.borderedProminent)
+            Button(L("返回测距与测试")) { dismiss() }.buttonStyle(.borderedProminent)
         }.padding(24).frame(maxWidth:600).preferredColorScheme(.light)
     }
 }

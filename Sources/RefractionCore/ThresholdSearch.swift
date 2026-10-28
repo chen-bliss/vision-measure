@@ -23,10 +23,10 @@ public struct ThresholdSearch {
         targetPower = nearPass
     }
     public mutating func submit(correct: Bool, distance: DistanceReading, now: Date = Date(), manualDistanceStillConfirmed: Bool = false) throws {
-        guard !finished else { throw MeasurementError.invalid("当前方向已结束。") }
+        guard !finished else { throw MeasurementError.invalid(L("当前方向已结束。")) }
         try distance.validate(now: now, manualDistanceStillConfirmed: manualDistanceStillConfirmed)
         guard abs(1 / distance.meters - targetPower) <= 0.06 else {
-            throw MeasurementError.invalid("距离尚未到达目标位置，请先调整距离。")
+            throw MeasurementError.invalid(L("距离尚未到达目标位置，请先调整距离。"))
         }
         answers.append(correct); distanceErrors.append(distance.vergenceUncertainty)
         guard answers.count == Self.blockSize else { return }
@@ -35,12 +35,12 @@ public struct ThresholdSearch {
         switch phase {
         case .nearEndpoint:
             if !passed && !confirmingEndpoint { confirmingEndpoint = true; return }
-            guard passed else { fail("在最近距离仍无法稳定辨认；超出本方法范围，或需要重新练习、检查图案尺寸。"); return }
+            guard passed else { fail(L("在最近距离仍无法稳定辨认；超出本方法范围，或需要重新练习、检查图案尺寸。")); return }
             confirmingEndpoint = false
             phase = .farEndpoint; targetPower = farFail
         case .farEndpoint:
             if passed && !confirmingEndpoint { confirmingEndpoint = true; return }
-            guard !passed else { fail("最远距离仍可辨认，没有测到远点边界；不能据此报告零度或推算度数。"); return }
+            guard !passed else { fail(L("最远距离仍可辨认，没有测到远点边界；不能据此报告零度或推算度数。")); return }
             confirmingEndpoint = false
             phase = .bisect; targetPower = (nearPass + farFail) / 2
         case .bisect:
@@ -52,7 +52,7 @@ public struct ThresholdSearch {
     }
     private mutating func fail(_ message: String) { failure = message; phase = .failed }
     public func result(meridian: Double, repeatIndex: Int) throws -> MeridianThreshold {
-        guard phase == .complete else { throw MeasurementError.invalid(failure ?? "尚未找到两侧边界。") }
+        guard phase == .complete else { throw MeasurementError.invalid(failure ?? L("尚未找到两侧边界。")) }
         let halfBracket = (nearPass - farFail) / 2
         let uncertainty = hypot(halfBracket, distanceErrors.max() ?? 0.15)
         return MeridianThreshold(meridian: meridian, repeatIndex: repeatIndex,

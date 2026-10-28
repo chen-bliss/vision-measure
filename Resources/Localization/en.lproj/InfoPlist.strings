@@ -1,0 +1,6 @@
+"CFBundleDisplayName" = "VisionMeasure Research";
+"CFBundleName" = "VisionMeasure";
+"NSCameraUsageDescription" = "The camera helps measure eye-to-screen distance on this device. No face images are stored.";
+"NSMicrophoneUsageDescription" = "Optional on-device voice answers let you say left, right or stop from a distance. No audio is recorded.";
+"NSSpeechRecognitionUsageDescription" = "Only answer commands such as left, right and stop are processed, and only with on-device recognition. Cloud recognition is never used.";
+"NSPhotoLibraryAddUsageDescription" = "Adds the generated precompensated image only when you choose Save to Photos. Existing photos are never read.";

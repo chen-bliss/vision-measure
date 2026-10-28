@@ -21,10 +21,10 @@ public struct CameraCalibration: Codable {
               (0.20...3).contains(referenceMeters), (0.20...3).contains(verificationMeters),
               abs(verificationMeters - referenceMeters) >= 0.15,
               abs(referenceRoll) < 0.12, abs(referenceYaw) < 0.12, abs(referencePitch) < 0.12 else {
-            throw MeasurementError.invalid("请正视屏幕，在两个相差至少15厘米的已知距离完成校准。")
+            throw MeasurementError.invalid(L("请正视屏幕，在两个相差至少15厘米的已知距离完成校准。"))
         }
         let error = abs(referenceMeters * referenceScale / verificationScale - verificationMeters) / verificationMeters
-        guard error <= 0.03 else { throw MeasurementError.invalid("第二距离核验误差超过3%，请重新校准或改用人工测距。") }
+        guard error <= 0.03 else { throw MeasurementError.invalid(L("第二距离核验误差超过3%，请重新校准或改用人工测距。")) }
         self.referenceScale = referenceScale; self.referenceMeters = referenceMeters
         self.referenceUncertainty = referenceUncertainty; self.referenceRoll = referenceRoll
         self.referenceYaw = referenceYaw; self.referencePitch = referencePitch
@@ -37,11 +37,11 @@ public struct CameraCalibration: Codable {
               [scale, roll, yaw, pitch, relativeJitter].allSatisfy({ $0.isFinite }), scale > 0,
               abs(roll - referenceRoll) < 0.10, abs(yaw - referenceYaw) < 0.10,
               abs(pitch - referencePitch) < 0.10, relativeJitter >= 0, relativeJitter < 0.015 else {
-            throw MeasurementError.invalid("姿态、画面或摄像头发生变化，请正视屏幕、保持稳定并重新校准。")
+            throw MeasurementError.invalid(L("姿态、画面或摄像头发生变化，请正视屏幕、保持稳定并重新校准。"))
         }
         let meters = referenceMeters * referenceScale / scale
         guard meters >= min(referenceMeters, verificationMeters), meters <= max(referenceMeters, verificationMeters) else {
-            throw MeasurementError.invalid("已超出两个校准距离之间的范围，请扩展校准或人工测距。")
+            throw MeasurementError.invalid(L("已超出两个校准距离之间的范围，请扩展校准或人工测距。"))
         }
         // Conservative floor: two-point agreement does not establish absolute accuracy.
         let relativeError = max(0.02, referenceUncertainty / referenceMeters, verificationRelativeError, relativeJitter)

@@ -5,7 +5,16 @@ public enum MeasurementError: Error, LocalizedError {
     public var errorDescription: String? { if case .invalid(let message) = self { return message }; return nil }
 }
 
-public enum Eye: String, Codable, CaseIterable { case right = "右眼", left = "左眼" }
+public enum AppInfo {
+    public static let version = "0.4.0"
+    public static let build = "8"
+}
+
+/// Raw values are stored in exported records and read by `Tools/validate_study.py`; never translate them.
+public enum Eye: String, Codable, CaseIterable {
+    case right = "右眼", left = "左眼"
+    public var localizedName: String { self == .right ? L("右眼") : L("左眼") }
+}
 public enum DistanceSource: String, Codable { case manual, calibratedCamera, depth }
 
 public struct DistanceReading: Codable, Equatable {
@@ -26,10 +35,10 @@ public struct DistanceReading: Codable, Equatable {
         guard meters.isFinite, uncertaintyMeters.isFinite, (0.20...3.0).contains(meters),
               uncertaintyMeters > 0, uncertaintyMeters < meters,
               now.timeIntervalSince(timestamp) >= -1, now.timeIntervalSince(timestamp) <= ageLimit else {
-            throw MeasurementError.invalid("距离无效或已过期，请重新测量；目前研究范围为20厘米至3米。")
+            throw MeasurementError.invalid(L("距离无效或已过期，请重新测量；目前研究范围为20厘米至3米。"))
         }
         guard vergenceUncertainty <= 0.15 else {
-            throw MeasurementError.invalid("距离误差过大。请提高测距精度或换用人工测距。")
+            throw MeasurementError.invalid(L("距离误差过大。请提高测距精度或换用人工测距。"))
         }
     }
 }
@@ -121,6 +130,8 @@ public struct SessionRecord: Codable, Identifiable {
     public var sessionKind: String?
     public var displayContext: DisplayContext?
     public var appVersion: String?
+    /// Interface language during the session; instructions in another language may change comprehension.
+    public var interfaceLanguage: String?
     public var trials: [Trial] = []
     public var thresholds: [MeridianThreshold] = []
     public var estimate: ResearchEstimate?

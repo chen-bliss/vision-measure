@@ -17,7 +17,7 @@ struct FaceSample {
 }
 
 final class CameraService: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
-    @Published var status = "摄像头未开启，可以直接使用人工测距。"
+    @Published var status = L("摄像头未开启，可以直接使用人工测距。")
     @Published var face: FaceSample?
     @Published var depth: DistanceReading?
     @Published var running = false
@@ -45,10 +45,10 @@ final class CameraService: NSObject, ObservableObject, AVCaptureVideoDataOutputS
                 DispatchQueue.main.async {
                     guard let self = self, self.generation == token else { return }
                     if granted { self.configure(preferDepth: preferDepth, token: token) }
-                    else { self.status = "未授权摄像头，请使用人工测距。" }
+                    else { self.status = L("未授权摄像头，请使用人工测距。") }
                 }
             }
-        default: status = "摄像头不可用或未授权，请使用人工测距。"
+        default: status = L("摄像头不可用或未授权，请使用人工测距。")
         }
     }
     func stop() {
@@ -67,11 +67,11 @@ final class CameraService: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             arSession.delegateQueue = .main
             arStartedAt = ProcessInfo.processInfo.systemUptime
             arSession.run(ARFaceTrackingConfiguration(), options: [.resetTracking, .removeExistingAnchors])
-            running = true; status = "正在检查深度数据；若无读数，请切换普通摄像头。"
+            running = true; status = L("正在检查深度数据；若无读数，请切换普通摄像头。")
             return
         }
         #endif
-        status = "正在开启普通摄像头，需要两个实测距离校准。"
+        status = L("正在开启普通摄像头，需要两个实测距离校准。")
         queue.async { [weak self] in
             guard let self = self else { return }
             self.capture.beginConfiguration()
@@ -85,7 +85,7 @@ final class CameraService: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             #endif
             guard let device = device, let input = try? AVCaptureDeviceInput(device: device), self.capture.canAddInput(input) else {
                 self.capture.commitConfiguration()
-                DispatchQueue.main.async { if self.generation == token { self.status = "没有可用摄像头，请使用人工测距。" } }
+                DispatchQueue.main.async { if self.generation == token { self.status = L("没有可用摄像头，请使用人工测距。") } }
                 return
             }
             self.capture.sessionPreset = .high
@@ -96,7 +96,7 @@ final class CameraService: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             output.setSampleBufferDelegate(self, queue: self.queue)
             guard self.capture.canAddOutput(output) else {
                 self.capture.commitConfiguration()
-                DispatchQueue.main.async { if self.generation == token { self.status = "无法读取画面，请使用人工测距。" } }
+                DispatchQueue.main.async { if self.generation == token { self.status = L("无法读取画面，请使用人工测距。") } }
                 return
             }
             self.capture.addOutput(output)
@@ -111,7 +111,7 @@ final class CameraService: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             self.capture.startRunning()
             DispatchQueue.main.async {
                 guard self.generation == token else { return }
-                self.running = true; self.status = "普通摄像头已开启，请正视屏幕并完成距离校准。"
+                self.running = true; self.status = L("普通摄像头已开启，请正视屏幕并完成距离校准。")
             }
         }
     }
@@ -134,7 +134,7 @@ final class CameraService: NSObject, ObservableObject, AVCaptureVideoDataOutputS
                 scales.removeAll()
                 DispatchQueue.main.async {
                     guard self.generation == token, self.running else { return }
-                    self.face = nil; self.status = "请让一张完整人脸正对摄像头，避免遮住眉毛、鼻子和嘴。"
+                    self.face = nil; self.status = L("请让一张完整人脸正对摄像头，避免遮住眉毛、鼻子和嘴。")
                 }
                 return
             }
@@ -155,12 +155,12 @@ final class CameraService: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             let stable = scales.count >= 10 && jitter < 0.015
             DispatchQueue.main.async {
                 guard self.generation == token, self.running else { return }
-                self.face = sample; self.status = stable ? "人脸稳定；测距仍需个人校准。" : "请保持正视并稳定约一秒。"
+                self.face = sample; self.status = stable ? L("人脸稳定；测距仍需个人校准。") : L("请保持正视并稳定约一秒。")
             }
         } catch {
             DispatchQueue.main.async {
                 guard self.generation == token, self.running else { return }
-                self.face = nil; self.status = "画面识别失败，可重新开启摄像头或人工测距。"
+                self.face = nil; self.status = L("画面识别失败，可重新开启摄像头或人工测距。")
             }
         }
     }
@@ -172,7 +172,7 @@ extension CameraService: ARSessionDelegate {
         guard running, frame.timestamp >= arStartedAt else { return }
         guard frame.capturedDepthData != nil, case .normal = frame.camera.trackingState,
               let face = frame.anchors.compactMap({ $0 as? ARFaceAnchor }).first, face.isTracked else {
-            DispatchQueue.main.async { self.depth = nil; self.status = "深度读数不可用，请调整位置或切换普通摄像头。" }
+            DispatchQueue.main.async { self.depth = nil; self.status = L("深度读数不可用，请调整位置或切换普通摄像头。") }
             return
         }
         let eye = (face.leftEyeTransform.columns.3 + face.rightEyeTransform.columns.3) / 2
@@ -180,10 +180,10 @@ extension CameraService: ARSessionDelegate {
         let meters = Double(abs(p.z))
         // Sensor error, camera/screen offset and geometry require device-specific validation.
         let reading = DistanceReading(meters: meters, uncertaintyMeters: max(0.008, meters * 0.02), source: .depth)
-        DispatchQueue.main.async { self.depth = reading; self.status = "深度数据可用；尚未经过该机型的测量精度验证。" }
+        DispatchQueue.main.async { self.depth = reading; self.status = L("深度数据可用；尚未经过该机型的测量精度验证。") }
     }
     func session(_ session: ARSession, didFailWithError error: Error) {
-        DispatchQueue.main.async { self.depth = nil; self.status = "深度会话中断，请切换普通摄像头或人工测距。" }
+        DispatchQueue.main.async { self.depth = nil; self.status = L("深度会话中断，请切换普通摄像头或人工测距。") }
     }
     func sessionWasInterrupted(_ session: ARSession) { DispatchQueue.main.async { self.depth = nil } }
 }

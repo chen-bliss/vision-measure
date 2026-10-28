@@ -1,0 +1,6 @@
+"CFBundleDisplayName" = "视界研究版";
+"CFBundleName" = "视界研究版";
+"NSCameraUsageDescription" = "摄像头用于在本机辅助测量眼睛到屏幕的距离；不保存人脸图像。";
+"NSMicrophoneUsageDescription" = "可选的本机语音作答，用于在远处说左边、右边或停止；不保存录音。";
+"NSSpeechRecognitionUsageDescription" = "仅在支持本机识别时处理左边、右边、停止等作答指令；不使用云端识别。";
+"NSPhotoLibraryAddUsageDescription" = "仅在你点击保存到相册时添加生成的预处理图，不读取已有照片。";

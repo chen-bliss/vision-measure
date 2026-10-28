@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Localization check
+        run: python3 Tools/check_localization.py
+      - name: Python validation tools
+        run: python3 -m unittest discover -s Tools -p 'test_*.py' -v
+      - name: Build
+        run: swift build
+      - name: Core tests
+        run: swift test
+      - name: Package Mac app
+        run: Tools/build_mac.sh
+      - name: Verify packaged app
+        run: python3 Tools/check_mac_bundle.py Build/VisionMeasure.app
+
+  native:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify generated Xcode project
+        run: |
+          python3 Tools/create_xcode_project.py
+          git diff --exit-code -- VisionMeasure.xcodeproj
+      - name: Build native Mac app
+        run: >-
+          xcodebuild -project VisionMeasure.xcodeproj -scheme VisionMeasure
+          -destination 'platform=macOS' -derivedDataPath Build/NativeMac
+          CODE_SIGNING_ALLOWED=NO build
+      - name: Choose iPhone simulator
+        run: |
+          xcrun simctl list devices available -j > "$RUNNER_TEMP/devices.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          devices = json.loads((Path(os.environ['RUNNER_TEMP']) / 'devices.json').read_text())['devices']
+          phone = next(device for runtime, entries in devices.items() if '.iOS-' in runtime
+                       for device in entries if device['name'].startswith('iPhone'))
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write(f"SIMULATOR_ID={phone['udid']}\n")
+          PY
+      - name: Verify six languages and Arabic physical answer sides
+        run: >-
+          xcodebuild -project VisionMeasure.xcodeproj -scheme VisionMeasure
+          -destination "platform=iOS Simulator,id=$SIMULATOR_ID"
+          -derivedDataPath Build/NativeIOS -resultBundlePath Build/Localization.xcresult
+          -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO
+          -only-testing:VisionMeasureUITests/FlowTests/testEveryUNLanguageLaunchesLocalized
+          -only-testing:VisionMeasureUITests/FlowTests/testArabicKeepsLeftAnswerOnPhysicalLeft
+          test

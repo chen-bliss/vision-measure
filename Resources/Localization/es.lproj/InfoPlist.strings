@@ -1,0 +1,6 @@
+"CFBundleDisplayName" = "VisionMeasure Investigación";
+"CFBundleName" = "VisionMeasure";
+"NSCameraUsageDescription" = "La cámara ayuda a medir en el dispositivo la distancia entre el ojo y la pantalla. No se guardan imágenes del rostro.";
+"NSMicrophoneUsageDescription" = "Las respuestas por voz opcionales en el dispositivo le permiten decir izquierda, derecha o alto a distancia. No se graba audio.";
+"NSSpeechRecognitionUsageDescription" = "Solo se procesan órdenes de respuesta como izquierda, derecha y alto, y únicamente con reconocimiento en el dispositivo. Nunca se usa la nube.";
+"NSPhotoLibraryAddUsageDescription" = "Añade la imagen precompensada solo cuando elige Guardar en Fotos. Nunca se leen sus fotos existentes.";

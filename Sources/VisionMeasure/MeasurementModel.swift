@@ -40,12 +40,12 @@ import UIKit
     @Published var renderScale = 2.0
     @Published var nearestMeters = 0.2
     @Published var dataError = ""
-    @Published var distanceIssue = "尚无有效距离"
+    @Published var distanceIssue = L("尚无有效距离")
     @Published var maxPatchPoints = 120.0
     @Published var displayContext: DisplayContext?
     private var referenceFace: FaceSample?
     private var manualReading: DistanceReading?
-    private var manualDistanceIssue = "人工距离尚未确认。请填写实测距离，再点击“确认已实测，并保持不动”。"
+    private var manualDistanceIssue = L("人工距离尚未确认。请填写实测距离，再点击“确认已实测，并保持不动”。")
     private var readySince: Date?
     private var stableReadings: [(Date, Double)] = []
     private var presentedAt = Date()
@@ -66,40 +66,40 @@ import UIKit
         2 * tan(displayedDiameterDegrees / 2 * .pi / 180) * (reading?.meters ?? targetMeters) * 1000 * pointsPerMM
     }
     var stimulusBlockMessage: String? {
-        guard testing else { return "请先开始练习与测量。" }
+        guard testing else { return L("请先开始练习与测量。") }
         guard let reading = reading else { return distanceIssue }
         guard abs(1 / reading.meters - 1 / targetMeters) <= 0.06 else {
             let lower = max(20, 100 / (1 / targetMeters + 0.06))
             let upper = 100 / max(1 / targetMeters - 0.06, 1 / 3.0)
-            return String(format: "当前距离 %.1f 厘米，尚未到达目标。请到 %.1f–%.1f 厘米范围内；人工模式需重新实测并确认。", reading.meters * 100, lower, upper)
+            return L("当前距离 %1$.1f 厘米，尚未到达目标。请到 %2$.1f–%3$.1f 厘米范围内；人工模式需重新实测并确认。", reading.meters * 100, lower, upper)
         }
         guard stripeWidth * renderScale >= 1.5 else {
-            return "当前距离下条纹像素不足。请检查蓝线实测长度并重新校准屏幕，不能通过猜填距离继续。"
+            return L("当前距离下条纹像素不足。请检查蓝线实测长度并重新校准屏幕，不能通过猜填距离继续。")
         }
         guard patchDiameter <= maxPatchPoints - 8 else {
-            return "当前测试区域放不下完整图案。请保持设备姿态，停止本轮并重新校准显示区域。"
+            return L("当前测试区域放不下完整图案。请保持设备姿态，停止本轮并重新校准显示区域。")
         }
         guard let readySince = readySince, Date().timeIntervalSince(readySince) >= 0.8 else {
-            return "距离已到位，正在等待读数稳定；请保持不动。"
+            return L("距离已到位，正在等待读数稳定；请保持不动。")
         }
         return nil
     }
     var stimulusVisible: Bool { testing && stimulusBlockMessage == nil }
     var canAnswer: Bool { stimulusVisible && visibleSince.map { Date().timeIntervalSince($0) >= 0.8 } == true }
     var stimulusStatus: String {
-        stimulusBlockMessage ?? (canAnswer ? "哪一侧有条纹？不确定时请猜测。" : "图案已显示，请观察片刻，按钮即将启用。")
+        stimulusBlockMessage ?? (canAnswer ? L("哪一侧有条纹？不确定时请猜测。") : L("图案已显示，请观察片刻，按钮即将启用。"))
     }
     init() { loadHistory() }
 
     func calibrateScreen() {
-        guard let cm = Double(screenMeasuredCM), cm.isFinite, (1...30).contains(cm) else {
-            message = "请用尺子测量蓝色线段的实际长度并输入厘米数。"; return
+        guard let cm = NumberInput.parse(screenMeasuredCM), cm.isFinite, (1...30).contains(cm) else {
+            message = L("请用尺子测量蓝色线段的实际长度并输入厘米数。"); return
         }
         pointsPerMM = 200 / (cm * 10)
         screenConfirmed = true
         nearestMeters = max(0.20, 1.6 / (renderScale * pointsPerMM * 1000 * tan(.pi / (180 * 60))))
         nearestMeters = ceil(nearestMeters * 100) / 100
-        message = nearestMeters < 2 ? "屏幕已校准。最近测试距离为\(Int(nearestMeters * 100))厘米，由屏幕实际分辨能力决定。" : "屏幕分辨能力不足以完成当前测试。"
+        message = nearestMeters < 2 ? L("屏幕已校准。最近测试距离为%ld厘米，由屏幕实际分辨能力决定。", Int(nearestMeters * 100)) : L("屏幕分辨能力不足以完成当前测试。")
     }
     var displayCalibrationSignature: String {
         guard let value=displayTracker.accepted else { return "unavailable" }
@@ -112,25 +112,25 @@ import UIKit
         if change == .geometry {
             screenConfirmed = false; pointsPerMM = 0
             resetDistance()
-            if testing { stop(reason: "显示区域或屏幕发生变化，本轮已停止，请重新校准后测试。") }
-            message = "显示区域或屏幕发生变化，请重新测量蓝线，并重新确认距离或摄像头校准。"
+            if testing { stop(reason: L("显示区域或屏幕发生变化，本轮已停止，请重新校准后测试。")) }
+            message = L("显示区域或屏幕发生变化，请重新测量蓝线，并重新确认距离或摄像头校准。")
         } else if change == .interfaceAxis {
             resetDistance()
-            if testing { stop(reason:"界面显示方向已改变，本轮已停止。屏幕尺寸校准保留，请重新确认观看距离后再开始。") }
-            message="界面显示方向已改变，屏幕尺寸校准保留；请重新确认观看距离。"
+            if testing { stop(reason:L("界面显示方向已改变，本轮已停止。屏幕尺寸校准保留，请重新确认观看距离后再开始。")) }
+            message=L("界面显示方向已改变，屏幕尺寸校准保留；请重新确认观看距离。")
         }
         return change == .geometry || change == .interfaceAxis
     }
     func setManualDistance() {
         do {
-            guard let cm = Double(manualCM), let mm = Double(manualErrorMM), cm.isFinite, mm.isFinite else {
-                throw MeasurementError.invalid("请输入实际测量的距离和误差。")
+            guard let cm = NumberInput.parse(manualCM), let mm = NumberInput.parse(manualErrorMM), cm.isFinite, mm.isFinite else {
+                throw MeasurementError.invalid(L("请输入实际测量的距离和误差。"))
             }
             let value = DistanceReading(meters: cm / 100, uncertaintyMeters: mm / 1000, source: .manual)
             try value.validate()
             manualReading = value; reading = value; readySince = nil; visibleSince = nil; stableReadings = []
             manualDistanceIssue = ""
-            message = "人工距离已确认，不再按30秒重置。保持位置不动；每次移动、目标距离变化或中断后，需重新实测并确认。"
+            message = L("人工距离已确认，不再按30秒重置。保持位置不动；每次移动、目标距离变化或中断后，需重新实测并确认。")
         } catch {
             message = error.localizedDescription; distanceIssue = message; manualDistanceIssue = message
             reading = nil; manualReading = nil
@@ -139,10 +139,10 @@ import UIKit
     func captureReference(_ face: FaceSample?) {
         guard let face = face, Date().timeIntervalSince(face.timestamp) < 0.5,
               face.jitter < 0.015, abs(face.roll) < 0.12, abs(face.yaw) < 0.12, abs(face.pitch) < 0.12 else {
-            message = "请正视屏幕并保持稳定，再记录校准点。"; return
+            message = L("请正视屏幕并保持稳定，再记录校准点。"); return
         }
         referenceFace = face; calibration = nil
-        message = "第一个位置已记录。移动到第二个实测位置后点击核验。"
+        message = L("第一个位置已记录。移动到第二个实测位置后点击核验。")
     }
     func verifyCamera(_ face: FaceSample?) {
         do {
@@ -150,19 +150,19 @@ import UIKit
                   Date().timeIntervalSince(first.timestamp) < 300, Date().timeIntervalSince(second.timestamp) < 0.5,
                   abs(first.roll - second.roll) < 0.08, abs(first.yaw - second.yaw) < 0.08,
                   abs(first.pitch - second.pitch) < 0.08, second.jitter < 0.015,
-                  let cm1 = Double(referenceCM), let cm2 = Double(verificationCM), let mm = Double(manualErrorMM) else {
-                throw MeasurementError.invalid("请保持相同姿态、相同摄像头，在两个实测距离完成校准。")
+                  let cm1 = NumberInput.parse(referenceCM), let cm2 = NumberInput.parse(verificationCM), let mm = NumberInput.parse(manualErrorMM) else {
+                throw MeasurementError.invalid(L("请保持相同姿态、相同摄像头，在两个实测距离完成校准。"))
             }
             calibration = try CameraCalibration(referenceScale: first.scale, referenceMeters: cm1 / 100,
                 referenceUncertainty: mm / 1000, referenceRoll: first.roll, referenceYaw: first.yaw,
                 referencePitch: first.pitch, verificationScale: second.scale, verificationMeters: cm2 / 100,
                 cameraSignature: first.signature)
-            message = "两点校准通过，仅可在这两个距离之间估距。摄像头重启后需要重新校准。"
+            message = L("两点校准通过，仅可在这两个距离之间估距。摄像头重启后需要重新校准。")
         } catch { message = error.localizedDescription; calibration = nil }
     }
     func resetDistance() {
         reading = nil; manualReading = nil; calibration = nil; referenceFace = nil
-        manualDistanceIssue = "人工距离尚未确认。请填写实测距离，再点击“确认已实测，并保持不动”。"
+        manualDistanceIssue = L("人工距离尚未确认。请填写实测距离，再点击“确认已实测，并保持不动”。")
         readySince = nil; stableReadings = []
     }
     func refresh(camera: CameraService) {
@@ -174,7 +174,7 @@ import UIKit
             do { next = try calibration.reading(scale: face.scale, roll: face.roll, yaw: face.yaw, pitch: face.pitch,
                                                relativeJitter: face.jitter, cameraSignature: face.signature) }
             catch { distanceIssue = error.localizedDescription }
-        } else { distanceIssue = "摄像头尚无可靠距离，请完成校准或切换人工测距" }
+        } else { distanceIssue = L("摄像头尚无可靠距离，请完成校准或切换人工测距") }
         if let value = next {
             do {
                 try value.validate(now: now, maxAge: 0.4, manualDistanceStillConfirmed: distanceMode == 0 && manualReading != nil)
@@ -197,7 +197,7 @@ import UIKit
     func start() {
         guard !testing, screenConfirmed, pointsPerMM > 0, nearestMeters < 2,
               acknowledged, adultSuitable, !participantID.trimmingCharacters(in: .whitespaces).isEmpty else {
-            message = "请完成屏幕校准、匿名编号和适用条件确认。"; return
+            message = L("请完成屏幕校准、匿名编号和适用条件确认。"); return
         }
         let notes = distanceMode == 0 ? "manual; uncertainty_mm=\(manualErrorMM); confirmation_policy=until_target_change_or_interruption; timestamp=original_confirmation" :
             "camera; reference_cm=\(referenceCM); verification_cm=\(verificationCM); verified=\(calibration != nil)"
@@ -208,7 +208,8 @@ import UIKit
         record?.cameraCalibration = calibration
         record?.screenScale = renderScale
         record?.displayContext = displayContext
-        record?.appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "development"
+        record?.appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? AppInfo.version
+        record?.interfaceLanguage = AppLanguage.current.rawValue
         record?.sessionKind = ProcessInfo.processInfo.arguments.contains("--ui-test") ? "SYNTHETIC_UI_TEST" : "HUMAN_RESEARCH"
         meridians = [0,30,60,90,120,150].shuffled(); directionIndex = 0
         search = ThresholdSearch(nearMeters: nearestMeters)
@@ -217,9 +218,9 @@ import UIKit
         #if os(iOS)
         UIApplication.shared.isIdleTimerDisabled = true
         #else
-        displayActivity = ProcessInfo.processInfo.beginActivity(options: [.idleDisplaySleepDisabled], reason: "视觉测试期间保持屏幕显示")
+        displayActivity = ProcessInfo.processInfo.beginActivity(options: [.idleDisplaySleepDisabled], reason: L("视觉测试期间保持屏幕显示"))
         #endif
-        message = "先完成8次练习：找出有条纹的一侧。若看不清，请猜测，勿眯眼。"
+        message = L("先完成8次练习：找出有条纹的一侧。若看不清，请猜测，勿眯眼。")
     }
     private func newStimulus() { stimulusID = UUID(); correctSide = Int.random(in: 0...1); presentedAt = Date(); visibleSince = nil; readySince = nil; stableReadings = [] }
     func answer(_ side: Int) {
@@ -236,25 +237,25 @@ import UIKit
         if training {
             trainingCount += 1; if trial.correct { trainingCorrect += 1 }
             if trainingCount == 8 {
-                guard trainingCorrect >= 7 else { stop(reason: "练习未达到7/8正确，暂不能进行远点测量。请检查屏幕尺寸或重新练习。"); return }
-                training = false; message = "开始正式测试。移动到目标距离，位置稳定后选择有条纹的一侧。"
+                guard trainingCorrect >= 7 else { stop(reason: L("练习未达到7/8正确，暂不能进行远点测量。请检查屏幕尺寸或重新练习。")); return }
+                training = false; message = L("开始正式测试。移动到目标距离，位置稳定后选择有条纹的一侧。")
             }
         } else {
             do {
                 try search.submit(correct: trial.correct, distance: distance, manualDistanceStillConfirmed: manualStillConfirmed)
-                if search.phase == .failed { stop(reason: search.failure ?? "当前测试超出范围。"); return }
+                if search.phase == .failed { stop(reason: search.failure ?? L("当前测试超出范围。")); return }
                 if search.phase == .complete {
                     record?.thresholds.append(try search.result(meridian: meridian, repeatIndex: repeatIndex))
                     directionIndex += 1
                     if directionIndex == 12 { finish(); return }
                     search = ThresholdSearch(nearMeters: nearestMeters)
-                    message = "当前方向完成。下一方向需要重新寻找边界，可随时停止并保留记录。"
+                    message = L("当前方向完成。下一方向需要重新寻找边界，可随时停止并保留记录。")
                 }
             } catch { message = error.localizedDescription }
         }
         if distanceMode == 0 && abs(targetMeters - previousTarget) > 1e-9 {
             resetDistance()
-            manualDistanceIssue = "目标距离已改变。请到新位置重新实测，再点击“确认已实测，并保持不动”。"
+            manualDistanceIssue = L("目标距离已改变。请到新位置重新实测，再点击“确认已实测，并保持不动”。")
             distanceIssue = manualDistanceIssue
         }
         newStimulus()
@@ -276,7 +277,7 @@ import UIKit
         if let activity = displayActivity { ProcessInfo.processInfo.endActivity(activity); displayActivity = nil }
         #endif
         record?.finishedAt = Date(); record?.stopReason = reason
-        message = reason ?? "测试已完成。结果是未经临床验证的研究估计。"
+        message = reason ?? L("测试已完成。结果是未经临床验证的研究估计。")
         if let record = record { history.insert(record, at: 0); saveHistory() }
         page = 3
     }
@@ -291,7 +292,7 @@ import UIKit
             let filename = corruptHistory ? "recovered-sessions.json" : "sessions.json"
             try encoder.encode(history).write(to: storageURL.appendingPathComponent(filename), options: .atomic)
             try? FileManager.default.removeItem(at: storageURL.appendingPathComponent("draft.json"))
-        } catch { dataError = "记录保存失败：\(error.localizedDescription)。请立即导出。" }
+        } catch { dataError = L("记录保存失败：%@。请立即导出。", error.localizedDescription) }
     }
     private func persistDraft() {
         guard let record = record else { return }
@@ -299,14 +300,14 @@ import UIKit
             try FileManager.default.createDirectory(at: storageURL, withIntermediateDirectories: true)
             let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
             try encoder.encode(record).write(to: storageURL.appendingPathComponent("draft.json"), options: .atomic)
-        } catch { dataError = "临时记录保存失败，请导出当前记录。" }
+        } catch { dataError = L("临时记录保存失败，请导出当前记录。") }
     }
     private func loadHistory() {
         let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
         let url = storageURL.appendingPathComponent("sessions.json")
         if FileManager.default.fileExists(atPath: url.path) {
             do { history = try decoder.decode([SessionRecord].self, from: Data(contentsOf: url)) }
-            catch { corruptHistory = true; dataError = "历史记录无法读取，原文件已保留；新记录另存为 recovered-sessions.json，请导出备份。" }
+            catch { corruptHistory = true; dataError = L("历史记录无法读取，原文件已保留；新记录另存为 recovered-sessions.json，请导出备份。") }
         }
         let recoveredURL = storageURL.appendingPathComponent("recovered-sessions.json")
         if corruptHistory, let data = try? Data(contentsOf: recoveredURL), let recovered = try? decoder.decode([SessionRecord].self, from: data) {
@@ -316,7 +317,7 @@ import UIKit
         }
         if let data = try? Data(contentsOf: storageURL.appendingPathComponent("draft.json")),
            var draft = try? decoder.decode(SessionRecord.self, from: data), !history.contains(where: { $0.id == draft.id }) {
-            draft.stopReason = "上次测试中断，仅恢复原始记录，未继续输出度数。"
+            draft.stopReason = L("上次测试中断，仅恢复原始记录，未继续输出度数。")
             draft.finishedAt = Date(); history.insert(draft, at: 0)
         }
     }

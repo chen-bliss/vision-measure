@@ -38,7 +38,7 @@ public enum VisualPrecompensation {
               (0...180).contains(settings.axis),(0.2...3).contains(settings.distanceMeters),
               (2...8).contains(settings.pupilMillimeters),settings.imageWidthMillimeters > 0,
               (0...1).contains(settings.strength) else {
-            throw MeasurementError.invalid("请填写有效的近视、散光、轴位、观看距离和屏幕尺寸。")
+            throw MeasurementError.invalid(L("请填写有效的近视、散光、轴位、观看距离和屏幕尺寸。"))
         }
         // Geometric ellipse approximation, with assumed best spherical accommodation.
         // Real accommodation, diffraction, pupil shape and higher-order aberrations are unknown.
@@ -49,7 +49,7 @@ public enum VisualPrecompensation {
         let rx=factor*abs(vergence+settings.sphere-accommodation)
         let ry=factor*abs(vergence+settings.sphere+settings.cylinder-accommodation)
         guard max(rx,ry) <= Double(size)/3 else {
-            throw MeasurementError.invalid("此组度数与距离下，估计模糊范围太大。请缩短观看距离或使用更大的屏幕，再尝试预处理；本实验不能补回已丢失的细节。")
+            throw MeasurementError.invalid(L("此组度数与距离下，估计模糊范围太大。请缩短观看距离或使用更大的屏幕，再尝试预处理；本实验不能补回已丢失的细节。"))
         }
         // Zero-padding prevents the test content wrapping from one edge into the opposite edge.
         let n=size*2, origin=size/2

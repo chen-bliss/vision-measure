@@ -1,0 +1,6 @@
+"CFBundleDisplayName" = "VisionMeasure للبحث";
+"CFBundleName" = "VisionMeasure";
+"NSCameraUsageDescription" = "تساعد الكاميرا في قياس المسافة بين العين والشاشة على الجهاز. لا تُحفَظ صور للوجه.";
+"NSMicrophoneUsageDescription" = "تتيح الإجابات الصوتية الاختيارية على الجهاز أن تقول يسار أو يمين أو توقف من بعيد. لا يُسجَّل الصوت.";
+"NSSpeechRecognitionUsageDescription" = "تُعالَج أوامر الإجابة فقط مثل يسار ويمين وتوقف، وبالتعرّف على الجهاز حصرًا. لا تُستخدم السحابة إطلاقًا.";
+"NSPhotoLibraryAddUsageDescription" = "يضيف الصورة المعالجة مسبقًا فقط عندما تختار الحفظ في الصور. لا تُقرأ صورك الموجودة أبدًا.";

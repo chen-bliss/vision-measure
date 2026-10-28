@@ -7,10 +7,11 @@ import RefractionCore
 /// Optional local-only commands for distances at which the user cannot reach the screen.
 final class VoiceControl: ObservableObject {
     @Published var running = false
-    @Published var status = "可使用键盘、协助者，或开启本机语音作答。"
+    @Published var status = L("可使用键盘、协助者，或开启本机语音作答。")
     var onCommand: ((Int) -> Bool)?
     private let engine = AVAudioEngine()
-    private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-CN"))
+    private var recognizer: SFSpeechRecognizer?
+    private var vocabulary = VoiceVocabulary.chinese
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private var hasTap = false
@@ -27,21 +28,25 @@ final class VoiceControl: ObservableObject {
 
     func start() {
         stop()
+        let language = AppLanguage.current
+        vocabulary = .forLanguage(language)
+        answerGate = VoiceAnswerGate(vocabulary: vocabulary)
+        recognizer = SFSpeechRecognizer(locale: Locale(identifier: language.speechLocaleIdentifier))
         guard let recognizer = recognizer, recognizer.supportsOnDeviceRecognition, recognizer.isAvailable else {
-            status = "当前设备没有可用的本机中文语音识别。请用键盘或请协助者点击；不会切换云端识别。"; return
+            status = L("当前设备没有可用于当前界面语言的本机语音识别。请用键盘或请协助者点击；不会切换云端识别。"); return
         }
         let token = generation
         SFSpeechRecognizer.requestAuthorization { [weak self] auth in
             guard let self = self else { return }
             guard auth == .authorized else { DispatchQueue.main.async {
                 guard self.generation == token else { return }
-                self.status = "语音识别未授权，请用按钮或键盘。"
+                self.status = L("语音识别未授权，请用按钮或键盘。")
             }; return }
             AVCaptureDevice.requestAccess(for: .audio) { granted in
                 DispatchQueue.main.async {
                     guard self.generation == token else { return }
                     if granted { self.configure() }
-                    else { self.status = "麦克风未授权，请用按钮或键盘。" }
+                    else { self.status = L("麦克风未授权，请用按钮或键盘。") }
                 }
             }
         }
@@ -76,7 +81,7 @@ final class VoiceControl: ObservableObject {
             } catch {
                 DispatchQueue.main.async {
                     guard self.generation == token else { return }
-                    self.stop(); self.status = "语音启动失败，请用按钮、键盘或协助者。"
+                    self.stop(); self.status = L("语音启动失败，请用按钮、键盘或协助者。")
                 }
             }
         }
@@ -90,8 +95,8 @@ final class VoiceControl: ObservableObject {
     }
     private func updateStatus() {
         status = acceptingAnswers
-            ? "本机语音正在听：请说“左边”或“右边”；说“停止”结束。"
-            : "本机语音已开启，等待图案就绪。请在按钮可用后说“左边”或“右边”；随时可说“停止”。"
+            ? L("本机语音正在听：请说“左边”或“右边”；说“停止”结束。")
+            : L("本机语音已开启，等待图案就绪。请在按钮可用后说“左边”或“右边”；随时可说“停止”。")
     }
     private func detachTask() {
         taskGeneration += 1
@@ -108,7 +113,7 @@ final class VoiceControl: ObservableObject {
         let next = SFSpeechAudioBufferRecognitionRequest()
         next.requiresOnDeviceRecognition = true
         next.shouldReportPartialResults = true
-        next.contextualStrings = ["左边", "右边", "停止"]
+        next.contextualStrings = vocabulary.contextualStrings
         requestLock.lock(); request = next; requestLock.unlock()
         task = recognizer.recognitionTask(with: next) { [weak self] result, error in
             DispatchQueue.main.async {
@@ -131,11 +136,11 @@ final class VoiceControl: ObservableObject {
                 } else if error != nil {
                     self.recoveryAttempts += 1
                     if self.recoveryAttempts <= 3 {
-                        self.status = "语音正在恢复，请稍候再说；也可用按钮作答。"
+                        self.status = L("语音正在恢复，请稍候再说；也可用按钮作答。")
                         self.scheduleRestart(after:0.4 * Double(self.recoveryAttempts))
                     } else {
                         self.stop()
-                        self.status = "本机语音暂时不可用，请重新开启或用按钮作答。"
+                        self.status = L("本机语音暂时不可用，请重新开启或用按钮作答。")
                     }
                 }
             }
@@ -154,8 +159,8 @@ final class VoiceControl: ObservableObject {
     func stop() {
         generation += 1; running = false
         restartPending = false; recoveryAttempts = 0; acceptingAnswers = false
-        answerGate = VoiceAnswerGate()
-        status = "语音已关闭，可使用按钮、键盘或协助者作答。"
+        answerGate = VoiceAnswerGate(vocabulary: vocabulary)
+        status = L("语音已关闭，可使用按钮、键盘或协助者作答。")
         detachTask()
         audioQueue.async { [weak self] in
             guard let self = self else { return }

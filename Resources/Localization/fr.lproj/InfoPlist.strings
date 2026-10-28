@@ -1,0 +1,6 @@
+"CFBundleDisplayName" = "VisionMeasure Recherche";
+"CFBundleName" = "VisionMeasure";
+"NSCameraUsageDescription" = "La caméra aide à mesurer la distance œil-écran sur l’appareil. Aucune image du visage n’est conservée.";
+"NSMicrophoneUsageDescription" = "Les réponses vocales facultatives sur l’appareil permettent de dire gauche, droite ou stop à distance. Aucun son n’est enregistré.";
+"NSSpeechRecognitionUsageDescription" = "Seules les commandes de réponse comme gauche, droite et stop sont traitées, uniquement par reconnaissance sur l’appareil. Le cloud n’est jamais utilisé.";
+"NSPhotoLibraryAddUsageDescription" = "Ajoute l’image précompensée uniquement lorsque vous choisissez Enregistrer dans Photos. Vos photos existantes ne sont jamais lues.";

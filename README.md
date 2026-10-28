@@ -6,6 +6,8 @@
 
 支持 iPhone 和 Mac 的原生屈光测量研究应用，不需要外接光学配件。
 
+0.4.0版加入联合国六种官方语言界面：简体中文、英语、法语、西班牙语、俄语、阿拉伯语。默认跟随系统语言，也可在页首切换；阿拉伯语采用从右到左排版，但测试图案和左右作答按钮始终保持物理左右不变。语音作答按界面语言使用对应的本机识别词表，数字输入接受逗号小数点和阿拉伯-印度数字。详见 [界面语言说明](Docs/Localization.md)。
+
 0.3.2版修复语音只能回答一轮的问题：每轮图案可作答时建立新的识别任务，每轮只提交一次，忽略旧任务回调；识别正常结束或短暂中断后自动重新接收，连续失败会提示重新开启。用户已在真实 iPhone 上反馈目前连续语音作答正常；这属于使用反馈，不是受控识别率测试。
 
 0.3.1版修正内屏拿远时的校准误触发：设备重力姿态只作元数据，尺寸校准按实际显示几何判断；短暂视图挂载和一像素内舍入变化不清除校准。趣味页新增字体／图案大小滑杆，以及预处理PNG保存到文件；iPhone另有保存到相册（仅添加照片权限）。改变大小后会重新计算预处理，不直接拉伸旧图。
@@ -20,15 +22,16 @@
 - 根据屏幕真实分辨能力限制最近距离，保持条纹角宽和窗口视角一致。
 - 随机左右条纹辨认：加粗练习、六个方向各两轮、远点两侧边界搜索。无法辨认练习图案时可明确结束，不输出度数。
 - 从方向屈光数据拟合球镜、柱镜和轴位；缺失边界、方向不一致、重复性不足时不报告度数。
-- 可选本机中文语音作答、Mac 左右方向键、协助者点击。
+- 界面支持简体中文、English、Français、Español、Русский、العربية，权限说明和应用名称同步本地化。
+- 可选本机语音作答（随界面语言切换词表）、Mac 左右方向键、协助者点击。
 - 原始记录自动保存在本机，可导出 JSON；不保存人脸照片或录音。
 - 导入专业验光 CSV，统计准确性、重复性、完成率、机型和测距方式分层。
 
 ## 打开 Mac 应用
 
-从 [Release](https://github.com/chen-bliss/vision-measure/releases/tag/v0.3.2) 下载 `VisionMeasure-0.3.2-macOS-arm64.zip` 并解压，打开其中的“视界研究版.app”。当前预编译包面向 Apple 芯片 Mac，使用临时签名，尚未进行 Apple 公证或上架；系统可能要求在“隐私与安全性”中允许打开。Intel Mac 需自行构建，当前没有已验证的预编译包。
+从 [Release](https://github.com/chen-bliss/vision-measure/releases/tag/v0.4.0) 下载 `VisionMeasure-0.4.0-macOS-arm64.zip` 并解压，打开其中的 `VisionMeasure.app`（访达按系统语言显示本地化名称，中文系统显示“视界研究版”）。当前预编译包面向 Apple 芯片 Mac，使用临时签名，尚未进行 Apple 公证或上架；系统可能要求在“隐私与安全性”中允许打开。Intel Mac 需自行构建，当前没有已验证的预编译包。
 
-源码构建后，应用位于 `Build/视界研究版.app`。应用界面当前为中文，项目文档提供中英文。
+源码构建后，应用位于 `Build/VisionMeasure.app`。应用界面支持联合国六种官方语言，项目文档提供中英文。
 
 1. 先阅读适用条件。本版先针对成年裸眼受试者；已知眼病、儿童、远视和混合散光不属于已实现的有效性范围。
 2. 用尺子测量蓝线实际长度，输入厘米数。不要把输入值当作随意设置；屏幕缩放改变后重新校准。
@@ -60,11 +63,15 @@ iPhone Duo 的准备和真机检查见 `Docs/iPhone-Duo-check.md`。0.2版按当
 ## 本机构建和核心测试
 
 ```sh
+python3 Tools/check_localization.py
 swift build
 Tools/build_mac.sh
+python3 Tools/check_mac_bundle.py Build/VisionMeasure.app
 swift test
 python3 -m unittest discover -s Tools -p 'test_*.py' -v
 ```
+
+每次推送和拉取请求都会在 GitHub Actions 上运行本地化检查、Python 测试、`swift build`、`swift test`、Mac 打包及安装包资源校验，并构建原生 Mac 应用、检查 iPhone 六语言启动和阿拉伯语左右作答位置。
 
 `swift test` 需要完整 Xcode 提供 XCTest；仅有 Command Line Tools 的 Mac 可编译应用，但可能无法运行 XCTest。
 
@@ -111,17 +118,22 @@ python3 Tools/validate_study.py Build/synthetic-benchmark/SYNTHETIC-sessions.jso
 
 ## 代码结构
 
-- `Sources/RefractionCore`：单位、距离校验、个人摄像头校准、边界搜索和规则散光拟合。
+- `Sources/RefractionCore`：单位、距离校验、个人摄像头校准、边界搜索、规则散光拟合，以及界面语言、数字输入和多语言语音词表。
+- `Resources/Localization`：五种译文（`Localizable.strings`）与六种语言的应用名和权限说明（`InfoPlist.strings`）。
 - `Sources/VisionMeasure`：SwiftUI 界面、摄像头、本机语音、原始记录与导出。
 - `Sources/RefractionBench`：独立模拟观察者与压力测试。
 - `Tests/RefractionCoreTests`：已知光学参数、符号与轴位、缺失边界、距离失效等测试。
 - `UITests`：iPhone 界面、错误输入、距离阻断、停止测试不出结果的流程检查。
 - `Tools/validate_study.py`：无第三方依赖的验光对照分析。
 - `Tools/validate_distance.py`：独立实测距离核验，含失败记录、未用于校准的位置及参考误差分析。
+- `Tools/check_localization.py`：检查译文齐全、占位符一致、没有遗漏的中文字面量。
+- `Tools/check_mac_bundle.py`：校验安装包版本、实际打包的六语言资源、可执行文件和签名。
 - `Docs/Validation-plan.md`：通向第三级的验证方案和当前局限。
 
 研究记录位于系统 Application Support 中的 `VisionMeasure` 目录；沙盒版本位于应用容器内。删除应用通常不会自动删除所有记录。请通过应用导出需要保留的记录。
 
 ## 当前发布检查
 
-0.3.2（build 7）：47项核心检查通过，含9项语音路由；人工距离界面流程复查通过；真实手机安装与版本读回成功，用户随后反馈连续语音正常。首轮界面检查的键盘超时及后续复查均记录在[检查摘要](Docs/Verification-summary.md)中。原始本机诊断日志含设备标识和开发环境路径，未上传到仓库；研究数据、签名证书、账户凭据、构建缓存也不随仓库发布。
+0.4.0（build 8）：55 项核心测试、31 项 Python 测试和 249 个翻译键的五语言译文检查通过；Apple 芯片 Mac 发布包已核对版本、实际语言资源和签名。原生 Xcode 构建、模拟器检查及测试环境详见[检查摘要](Docs/Verification-summary.md)。本版重点是六语言支持，未新增临床或测距准确性证据。
+
+Release 提供 Mac 应用、源码和 `SHA256SUMS.txt`。下载后可在附件所在目录运行 `shasum -a 256 -c SHA256SUMS.txt` 校验完整性。本版说明见 [v0.4.0](Docs/Releases/v0.4.0.md)。原始诊断日志、研究数据、签名证书、账户凭据、构建缓存不随仓库发布。

@@ -7,7 +7,12 @@ final class FlowTests: XCTestCase {
         continueAfterFailure = false
         XCUIDevice.shared.orientation = .portrait
         app = XCUIApplication()
-        app.launchArguments = ["--ui-test"]
+        launch(language:"zh-Hans")
+    }
+    /// Labels below are Chinese source strings; pin the app language so a simulator's locale cannot change them.
+    /// System sheets such as the file exporter keep the simulator language.
+    private func launch(language: String) {
+        app.launchArguments = ["--ui-test","-appLanguage",language]
         app.launch()
     }
     private func reveal(_ element: XCUIElement) {
@@ -46,6 +51,15 @@ final class FlowTests: XCTestCase {
         let button=app.buttons["确认已实测，并保持不动"]
         reveal(button); button.tap()
     }
+    private var exporterCancel: XCUIElement { app.buttons.matching(NSPredicate(format:"label IN %@",["取消","Cancel"])).firstMatch }
+    /// iOS 27 may present the exporter as a full-screen browser without a Cancel button; its Save action keeps a stable identifier.
+    private func assertFileExporterShown(file:StaticString = #filePath,line:UInt = #line) {
+        let shown=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+            self.exporterCancel.exists || self.app.buttons["DOCPicker.actionButton"].exists
+        },object:nil)
+        XCTAssertEqual(XCTWaiter.wait(for:[shown],timeout:8),.completed,"The system file exporter must appear",file:file,line:line)
+    }
+    private func dismissFileExporterIfPossible() { if exporterCancel.exists { exporterCancel.tap() } }
     private func assertKeyboardDismissed(file:StaticString = #filePath,line:UInt = #line) {
         let hidden=XCTNSPredicateExpectation(predicate:NSPredicate(format:"exists == false"),object:app.keyboards.firstMatch)
         XCTAssertEqual(XCTWaiter.wait(for:[hidden],timeout:4),.completed,file:file,line:line)
@@ -98,6 +112,30 @@ final class FlowTests: XCTestCase {
         }
         return stride(from:0,to:pixels.count,by:4).filter{pixels[$0]<150 && pixels[$0+1]<150 && pixels[$0+2]<150 && pixels[$0+3]>240}.count
     }
+    func testEveryUNLanguageLaunchesLocalized() {
+        let expected = ["zh-Hans":"确认尺寸","en":"Confirm size","fr":"Confirmer la taille","es":"Confirmar tamaño",
+                        "ru":"Подтвердить размер","ar":"تأكيد الحجم"]
+        for (language, label) in expected {
+            app.terminate(); launch(language:language)
+            let button = app.buttons["confirm-screen"]
+            XCTAssertTrue(button.waitForExistence(timeout:8), language)
+            XCTAssertEqual(button.label, label, language)
+        }
+    }
+    func testArabicKeepsLeftAnswerOnPhysicalLeft() throws {
+        app.terminate(); launch(language:"ar")
+        fill(app.textFields["participant-id"],"SYNTHETIC_RTL")
+        for index in 0..<2 { let toggle=app.switches.element(boundBy:index); reveal(toggle); toggle.tap() }
+        fill(app.textFields["screen-length"],"6")
+        reveal(app.buttons["confirm-screen"]); app.buttons["confirm-screen"].tap()
+        reveal(app.buttons["go-distance"]); app.buttons["go-distance"].tap()
+        reveal(app.buttons["start-test"]); app.buttons["start-test"].tap()
+        let left=app.buttons["answer-left"], right=app.buttons["answer-right"]
+        XCTAssertTrue(left.waitForExistence(timeout:8)); reveal(left)
+        XCTAssertEqual(left.label,"الخطوط على اليسار")
+        XCTAssertLessThan(left.frame.midX,right.frame.midX,"Right-to-left layout must not swap the physical answer sides")
+        attach("iPhone-arabic-test-layout")
+    }
     func testPreviewRendersStripesWithoutDistanceOrConsent() throws {
         app.buttons["距离"].tap()
         let preview = app.buttons["查看条纹显示示例"]
@@ -133,10 +171,9 @@ final class FlowTests: XCTestCase {
         XCTAssertLessThan(Double(smallInk),Double(largeInk)*0.75,"Changing size must resize the actual source glyph, not just its label")
         attach("iPhone-fun-smaller-text")
         let save=app.buttons["保存到文件"]; reveal(save); save.tap()
-        let cancel=app.buttons.matching(NSPredicate(format:"label IN %@",["取消","Cancel"])).firstMatch
-        XCTAssertTrue(cancel.waitForExistence(timeout:8))
+        assertFileExporterShown()
         attach("iPhone-fun-save-png-dialog")
-        cancel.tap()
+        dismissFileExporterIfPossible()
         XCTAssertFalse(app.buttons["停止并保存已有记录"].exists)
     }
     func testManualDistanceFlowAndIncompleteResult() throws {
@@ -186,10 +223,9 @@ final class FlowTests: XCTestCase {
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format:"label CONTAINS %@","1次作答")).firstMatch.exists)
         attach("iPhone-incomplete-record")
         let export=app.buttons["导出完整记录"].firstMatch; reveal(export); export.tap()
-        let cancel=app.buttons.matching(NSPredicate(format:"label IN %@",["取消","Cancel"])).firstMatch
-        XCTAssertTrue(cancel.waitForExistence(timeout:8))
+        assertFileExporterShown()
         attach("iPhone-study-json-export-dialog")
-        cancel.tap()
+        dismissFileExporterIfPossible()
     }
     func testKeyboardDoneDismissesWithoutConfirmingDistance() {
         app.buttons["距离"].tap()
